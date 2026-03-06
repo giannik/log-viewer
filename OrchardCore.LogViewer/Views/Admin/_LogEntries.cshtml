@@ -1,0 +1,206 @@
+@model OrchardCore.LogViewer.ViewModels.LogViewerViewModel
+@using OrchardCore.LogViewer.Models
+
+@{
+    var query = Model.Query;
+    var result = Model.Result;
+    var pageSizes = new[] { 10, 25, 50, 100 };
+}
+
+<div class="lv-entries-header">
+    <div class="lv-entries-meta">
+        <span class="lv-total">@result.TotalEntries entries</span>
+        @if (!string.IsNullOrWhiteSpace(query.SearchTerm))
+        {
+            <span class="lv-search-info">matching "@query.SearchTerm"</span>
+        }
+    </div>
+
+    <div class="lv-entries-controls">
+        <!-- Sort toggle -->
+        <button class="lv-btn lv-btn-sm @(query.NewestFirst ? "lv-btn-active" : "")"
+                hx-get="@Url.Action("Entries", "Admin", new { area = "OrchardCore.LogViewer", fileName = query.FileName, level = query.Level, searchTerm = query.SearchTerm, page = 1, perPage = query.PerPage, newestFirst = !query.NewestFirst })"
+                hx-target="#log-entries-container"
+                hx-swap="innerHTML"
+                hx-push-url="true"
+                title="@(query.NewestFirst ? "Currently: Newest first" : "Currently: Oldest first")">
+            @(query.NewestFirst ? "↓ Newest first" : "↑ Oldest first")
+        </button>
+
+        <!-- Per-page selector -->
+        <select class="lv-perpage"
+                hx-get="@Url.Action("Entries", "Admin", new { area = "OrchardCore.LogViewer", fileName = query.FileName, level = query.Level, searchTerm = query.SearchTerm, page = 1, newestFirst = query.NewestFirst })"
+                hx-target="#log-entries-container"
+                hx-swap="innerHTML"
+                hx-trigger="change"
+                hx-include="this"
+                name="perPage"
+                hx-push-url="true"
+                aria-label="Entries per page">
+            @foreach (var size in pageSizes)
+            {
+                <option value="@size" @(query.PerPage == size ? "selected" : "")>@size per page</option>
+            }
+        </select>
+
+        @if (!string.IsNullOrWhiteSpace(query.FileName))
+        {
+            <a href="@Url.Action("Download", "Admin", new { area = "OrchardCore.LogViewer", fileName = query.FileName })"
+               class="lv-btn lv-btn-sm"
+               title="Download log file">
+                ⬇ Download
+            </a>
+        }
+    </div>
+</div>
+
+@if (!result.Entries.Any())
+{
+    <div class="lv-empty">
+        <p>No log entries found.</p>
+        @if (!string.IsNullOrWhiteSpace(query.SearchTerm) || query.Level.HasValue)
+        {
+            <p class="lv-empty-hint">Try clearing your filters or search term.</p>
+        }
+    </div>
+}
+else
+{
+    <div class="lv-table-wrapper">
+        <table class="lv-table">
+            <thead>
+                <tr>
+                    <th class="lv-col-num">#</th>
+                    <th class="lv-col-level">Level</th>
+                    <th class="lv-col-time">Time</th>
+                    <th class="lv-col-logger">Logger</th>
+                    <th class="lv-col-tenant">Tenant</th>
+                    <th class="lv-col-message">Message</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var entry in result.Entries)
+                {
+                    var levelLower = entry.Level.ToString().ToLowerInvariant();
+                    var hasException = !string.IsNullOrWhiteSpace(entry.Exception);
+                    <tr class="lv-row lv-row--@levelLower @(hasException ? "lv-row--expandable" : "")"
+                        @(hasException ? "data-expandable=true" : "")
+                        tabindex="@(hasException ? "0" : "-1")"
+                        role="@(hasException ? "button" : "row")"
+                        aria-expanded="@(hasException ? "false" : null)">
+                        <td class="lv-col-num">@entry.Index</td>
+                        <td class="lv-col-level">
+                            <span class="lv-level-badge lv-level-badge--@levelLower">@entry.Level</span>
+                        </td>
+                        <td class="lv-col-time" title="@entry.Timestamp.ToString("O")">
+                            @entry.Timestamp.ToString("HH:mm:ss")
+                            <span class="lv-date">@entry.Timestamp.ToString("yyyy-MM-dd")</span>
+                        </td>
+                        <td class="lv-col-logger" title="@entry.Logger">@TruncateLogger(entry.Logger)</td>
+                        <td class="lv-col-tenant">@entry.TenantName</td>
+                        <td class="lv-col-message">
+                            <span class="lv-message">@entry.Message</span>
+                            @if (hasException)
+                            {
+                                <span class="lv-expand-icon" aria-hidden="true">▶</span>
+                            }
+                        </td>
+                    </tr>
+                    @if (hasException)
+                    {
+                        <tr class="lv-row lv-exception-row lv-exception-row--@levelLower" hidden>
+                            <td colspan="6">
+                                <pre class="lv-exception">@entry.Exception</pre>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    @if (result.TotalPages > 1)
+    {
+        <nav class="lv-pagination" aria-label="Log entries pagination">
+            @if (result.CurrentPage > 1)
+            {
+                <a class="lv-page-btn"
+                   hx-get="@Url.Action("Entries", "Admin", new { area = "OrchardCore.LogViewer", fileName = query.FileName, level = query.Level, searchTerm = query.SearchTerm, page = result.CurrentPage - 1, perPage = query.PerPage, newestFirst = query.NewestFirst })"
+                   hx-target="#log-entries-container"
+                   hx-swap="innerHTML"
+                   hx-push-url="true"
+                   href="#">← Prev</a>
+            }
+
+            @{
+                var startPage = Math.Max(1, result.CurrentPage - 2);
+                var endPage = Math.Min(result.TotalPages, result.CurrentPage + 2);
+            }
+
+            @if (startPage > 1)
+            {
+                <a class="lv-page-btn"
+                   hx-get="@Url.Action("Entries", "Admin", new { area = "OrchardCore.LogViewer", fileName = query.FileName, level = query.Level, searchTerm = query.SearchTerm, page = 1, perPage = query.PerPage, newestFirst = query.NewestFirst })"
+                   hx-target="#log-entries-container"
+                   hx-swap="innerHTML"
+                   hx-push-url="true"
+                   href="#">1</a>
+                @if (startPage > 2)
+                {
+                    <span class="lv-page-ellipsis">…</span>
+                }
+            }
+
+            @for (var p = startPage; p <= endPage; p++)
+            {
+                var pageNum = p;
+                <a class="lv-page-btn @(pageNum == result.CurrentPage ? "lv-page-btn--active" : "")"
+                   hx-get="@Url.Action("Entries", "Admin", new { area = "OrchardCore.LogViewer", fileName = query.FileName, level = query.Level, searchTerm = query.SearchTerm, page = pageNum, perPage = query.PerPage, newestFirst = query.NewestFirst })"
+                   hx-target="#log-entries-container"
+                   hx-swap="innerHTML"
+                   hx-push-url="true"
+                   href="#">@pageNum</a>
+            }
+
+            @if (endPage < result.TotalPages)
+            {
+                @if (endPage < result.TotalPages - 1)
+                {
+                    <span class="lv-page-ellipsis">…</span>
+                }
+                <a class="lv-page-btn"
+                   hx-get="@Url.Action("Entries", "Admin", new { area = "OrchardCore.LogViewer", fileName = query.FileName, level = query.Level, searchTerm = query.SearchTerm, page = result.TotalPages, perPage = query.PerPage, newestFirst = query.NewestFirst })"
+                   hx-target="#log-entries-container"
+                   hx-swap="innerHTML"
+                   hx-push-url="true"
+                   href="#">@result.TotalPages</a>
+            }
+
+            @if (result.CurrentPage < result.TotalPages)
+            {
+                <a class="lv-page-btn"
+                   hx-get="@Url.Action("Entries", "Admin", new { area = "OrchardCore.LogViewer", fileName = query.FileName, level = query.Level, searchTerm = query.SearchTerm, page = result.CurrentPage + 1, perPage = query.PerPage, newestFirst = query.NewestFirst })"
+                   hx-target="#log-entries-container"
+                   hx-swap="innerHTML"
+                   hx-push-url="true"
+                   href="#">Next →</a>
+            }
+
+            <span class="lv-page-info">
+                Page @result.CurrentPage of @result.TotalPages
+            </span>
+        </nav>
+    }
+}
+
+@functions {
+    static string TruncateLogger(string logger)
+    {
+        const int maxLen = 40;
+        if (logger.Length <= maxLen) return logger;
+        var parts = logger.Split('.');
+        if (parts.Length <= 1) return logger[..maxLen] + "…";
+        return "…." + parts[^1];
+    }
+}

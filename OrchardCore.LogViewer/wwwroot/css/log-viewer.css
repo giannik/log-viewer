@@ -1,0 +1,573 @@
+/* ============================================================
+   Log Viewer — Self-contained stylesheet
+   Color-coded levels, sidebar, table, dark mode
+   ============================================================ */
+
+/* ----- CSS Custom Properties ----- */
+:root {
+  --lv-bg:            #f8fafc;
+  --lv-bg-card:       #ffffff;
+  --lv-bg-sidebar:    #1e293b;
+  --lv-bg-header:     #0f172a;
+  --lv-text:          #1e293b;
+  --lv-text-muted:    #64748b;
+  --lv-text-sidebar:  #94a3b8;
+  --lv-text-on-dark:  #f1f5f9;
+  --lv-border:        #e2e8f0;
+  --lv-border-dark:   #334155;
+  --lv-row-alt:       #f1f5f9;
+  --lv-row-hover:     #e0f2fe;
+  --lv-accent:        #3b82f6;
+  --lv-sidebar-width: 260px;
+  --lv-header-height: 56px;
+  --lv-radius:        6px;
+  --lv-font-mono:     ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, monospace;
+  --lv-font-sans:     ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+  /* Level colours */
+  --lv-trace:   #6b7280;
+  --lv-debug:   #22c55e;
+  --lv-info:    #3b82f6;
+  --lv-warn:    #f59e0b;
+  --lv-error:   #ef4444;
+  --lv-fatal:   #991b1b;
+}
+
+/* ----- Dark mode overrides ----- */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --lv-bg:          #0f172a;
+    --lv-bg-card:     #1e293b;
+    --lv-bg-sidebar:  #0b1120;
+    --lv-bg-header:   #050d1a;
+    --lv-text:        #e2e8f0;
+    --lv-text-muted:  #94a3b8;
+    --lv-border:      #334155;
+    --lv-row-alt:     #162032;
+    --lv-row-hover:   #1e3a5f;
+  }
+}
+
+.lv-dark {
+  --lv-bg:          #0f172a;
+  --lv-bg-card:     #1e293b;
+  --lv-bg-sidebar:  #0b1120;
+  --lv-bg-header:   #050d1a;
+  --lv-text:        #e2e8f0;
+  --lv-text-muted:  #94a3b8;
+  --lv-border:      #334155;
+  --lv-row-alt:     #162032;
+  --lv-row-hover:   #1e3a5f;
+}
+
+/* ----- Reset scoped to wrapper ----- */
+.lv-wrapper *, .lv-wrapper *::before, .lv-wrapper *::after {
+  box-sizing: border-box;
+}
+
+/* ----- Layout ----- */
+.lv-wrapper {
+  display: flex;
+  flex-direction: column;
+  background: var(--lv-bg);
+  color: var(--lv-text);
+  font-family: var(--lv-font-sans);
+  min-height: 100vh;
+}
+
+.lv-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--lv-header-height);
+  background: var(--lv-bg-header);
+  color: var(--lv-text-on-dark);
+  padding: 0 1.25rem;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 1px 4px rgba(0,0,0,.4);
+}
+
+.lv-title {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: .02em;
+  margin: 0;
+  color: inherit;
+}
+
+.lv-icon {
+  width: 1.25em;
+  height: 1.25em;
+  flex-shrink: 0;
+}
+
+.lv-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+/* ----- Sidebar ----- */
+.lv-sidebar {
+  width: var(--lv-sidebar-width);
+  flex-shrink: 0;
+  background: var(--lv-bg-sidebar);
+  color: var(--lv-text-sidebar);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  border-right: 1px solid var(--lv-border-dark);
+  position: sticky;
+  top: var(--lv-header-height);
+  height: calc(100vh - var(--lv-header-height));
+}
+
+.lv-sidebar-header {
+  padding: .75rem 1rem .5rem;
+  font-size: .7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: #475569;
+}
+
+.lv-file-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 .5rem .5rem;
+  flex: 1;
+}
+
+.lv-file-item {
+  margin-bottom: 2px;
+}
+
+.lv-file-link {
+  display: flex;
+  flex-direction: column;
+  padding: .5rem .75rem;
+  border-radius: var(--lv-radius);
+  text-decoration: none;
+  color: var(--lv-text-sidebar);
+  transition: background .15s, color .15s;
+}
+
+.lv-file-link:hover {
+  background: rgba(255,255,255,.08);
+  color: var(--lv-text-on-dark);
+}
+
+.lv-file-item--active .lv-file-link {
+  background: var(--lv-accent);
+  color: #fff;
+}
+
+.lv-file-name {
+  font-size: .85rem;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lv-file-size {
+  font-size: .72rem;
+  opacity: .75;
+}
+
+.lv-file-empty {
+  padding: .75rem;
+  font-size: .85rem;
+  font-style: italic;
+  color: #475569;
+}
+
+/* ----- Main area ----- */
+.lv-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 1rem 1.25rem;
+  gap: .75rem;
+}
+
+/* ----- Toolbar ----- */
+.lv-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  align-items: center;
+}
+
+.lv-level-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .35rem;
+}
+
+/* ----- Level badges ----- */
+.lv-level-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: .3em;
+  padding: .2em .6em;
+  border-radius: 9999px;
+  font-size: .72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: filter .15s, opacity .15s;
+  background: transparent;
+  color: var(--lv-text);
+}
+
+.lv-level-badge--trace  { color: var(--lv-trace);  border-color: var(--lv-trace);  }
+.lv-level-badge--debug  { color: var(--lv-debug);  border-color: var(--lv-debug);  }
+.lv-level-badge--info   { color: var(--lv-info);   border-color: var(--lv-info);   }
+.lv-level-badge--warn   { color: var(--lv-warn);   border-color: var(--lv-warn);   }
+.lv-level-badge--error  { color: var(--lv-error);  border-color: var(--lv-error);  }
+.lv-level-badge--fatal  { color: var(--lv-fatal);  border-color: var(--lv-fatal);  }
+
+.lv-level-badge--active.lv-level-badge--trace  { background: var(--lv-trace);  color: #fff; }
+.lv-level-badge--active.lv-level-badge--debug  { background: var(--lv-debug);  color: #fff; }
+.lv-level-badge--active.lv-level-badge--info   { background: var(--lv-info);   color: #fff; }
+.lv-level-badge--active.lv-level-badge--warn   { background: var(--lv-warn);   color: #fff; }
+.lv-level-badge--active.lv-level-badge--error  { background: var(--lv-error);  color: #fff; }
+.lv-level-badge--active.lv-level-badge--fatal  { background: var(--lv-fatal);  color: #fff; }
+
+.lv-badge-count {
+  background: rgba(0,0,0,.15);
+  border-radius: 9999px;
+  padding: .05em .45em;
+  font-size: .9em;
+}
+
+/* ----- Search ----- */
+.lv-search-wrapper {
+  flex: 1;
+  min-width: 200px;
+}
+
+.lv-search {
+  width: 100%;
+  padding: .45rem .75rem;
+  border: 1px solid var(--lv-border);
+  border-radius: var(--lv-radius);
+  background: var(--lv-bg-card);
+  color: var(--lv-text);
+  font-size: .875rem;
+  outline: none;
+  transition: border-color .15s, box-shadow .15s;
+}
+
+.lv-search:focus {
+  border-color: var(--lv-accent);
+  box-shadow: 0 0 0 3px rgba(59,130,246,.2);
+}
+
+/* ----- Buttons ----- */
+.lv-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: .35em;
+  padding: .4em .9em;
+  border: 1px solid var(--lv-border);
+  border-radius: var(--lv-radius);
+  background: var(--lv-bg-card);
+  color: var(--lv-text);
+  font-size: .8rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background .15s, border-color .15s;
+}
+
+.lv-btn:hover {
+  background: var(--lv-border);
+}
+
+.lv-btn-active {
+  background: var(--lv-accent);
+  border-color: var(--lv-accent);
+  color: #fff;
+}
+
+.lv-btn-sm {
+  padding: .3em .7em;
+  font-size: .78rem;
+}
+
+.lv-btn-icon {
+  padding: .4em;
+  width: 2.2rem;
+  height: 2.2rem;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--lv-text-on-dark);
+}
+
+.lv-btn-icon svg {
+  width: 1.1em;
+  height: 1.1em;
+}
+
+/* ----- Entries header ----- */
+.lv-entries-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem;
+  padding-bottom: .5rem;
+  border-bottom: 1px solid var(--lv-border);
+}
+
+.lv-entries-meta {
+  font-size: .85rem;
+  color: var(--lv-text-muted);
+}
+
+.lv-entries-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem;
+  align-items: center;
+}
+
+.lv-total {
+  font-weight: 600;
+  color: var(--lv-text);
+}
+
+.lv-search-info {
+  margin-left: .4em;
+}
+
+/* ----- Per-page select ----- */
+.lv-perpage {
+  padding: .3em .7em;
+  border: 1px solid var(--lv-border);
+  border-radius: var(--lv-radius);
+  background: var(--lv-bg-card);
+  color: var(--lv-text);
+  font-size: .78rem;
+  cursor: pointer;
+}
+
+/* ----- Table ----- */
+.lv-table-wrapper {
+  overflow-x: auto;
+  border: 1px solid var(--lv-border);
+  border-radius: var(--lv-radius);
+  background: var(--lv-bg-card);
+}
+
+.lv-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .83rem;
+}
+
+.lv-table thead tr {
+  border-bottom: 2px solid var(--lv-border);
+  background: var(--lv-row-alt);
+}
+
+.lv-table th {
+  padding: .6rem .75rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: .72rem;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--lv-text-muted);
+  white-space: nowrap;
+}
+
+.lv-table td {
+  padding: .5rem .75rem;
+  vertical-align: top;
+  border-bottom: 1px solid var(--lv-border);
+}
+
+.lv-row:nth-child(even) {
+  background: var(--lv-row-alt);
+}
+
+.lv-row:hover td {
+  background: var(--lv-row-hover);
+}
+
+.lv-row--expandable {
+  cursor: pointer;
+}
+
+.lv-row--expandable:focus {
+  outline: 2px solid var(--lv-accent);
+  outline-offset: -2px;
+}
+
+/* Subtle row tinting by level */
+.lv-row--error td, .lv-row--fatal td {
+  background: rgba(239, 68, 68, .04);
+}
+.lv-row--warn td {
+  background: rgba(245, 158, 11, .04);
+}
+
+/* Column widths */
+.lv-col-num     { width: 3rem; color: var(--lv-text-muted); text-align: right; }
+.lv-col-level   { width: 6rem; }
+.lv-col-time    { width: 9rem; white-space: nowrap; }
+.lv-col-logger  { width: 14rem; }
+.lv-col-tenant  { width: 7rem; }
+.lv-col-message { min-width: 0; }
+
+.lv-date {
+  display: block;
+  font-size: .72rem;
+  color: var(--lv-text-muted);
+}
+
+.lv-message {
+  word-break: break-word;
+}
+
+.lv-expand-icon {
+  float: right;
+  font-size: .7em;
+  color: var(--lv-text-muted);
+  transition: transform .2s;
+}
+
+.lv-row[aria-expanded="true"] .lv-expand-icon {
+  transform: rotate(90deg);
+}
+
+/* ----- Exception row ----- */
+.lv-exception-row td {
+  padding: 0;
+  background: var(--lv-bg);
+}
+
+.lv-exception {
+  margin: 0;
+  padding: .75rem 1rem;
+  font-family: var(--lv-font-mono);
+  font-size: .78rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: var(--lv-text-muted);
+  border-left: 3px solid var(--lv-error);
+  background: var(--lv-bg);
+}
+
+/* ----- Empty state ----- */
+.lv-empty {
+  padding: 3rem 1.5rem;
+  text-align: center;
+  color: var(--lv-text-muted);
+  background: var(--lv-bg-card);
+  border: 1px solid var(--lv-border);
+  border-radius: var(--lv-radius);
+}
+
+.lv-empty-hint {
+  font-size: .85rem;
+  margin-top: .5rem;
+}
+
+/* ----- Pagination ----- */
+.lv-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .3rem;
+  padding: .5rem 0;
+}
+
+.lv-page-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2rem;
+  padding: .3em .65em;
+  border: 1px solid var(--lv-border);
+  border-radius: var(--lv-radius);
+  background: var(--lv-bg-card);
+  color: var(--lv-text);
+  font-size: .8rem;
+  text-decoration: none;
+  transition: background .15s;
+  cursor: pointer;
+}
+
+.lv-page-btn:hover {
+  background: var(--lv-border);
+}
+
+.lv-page-btn--active {
+  background: var(--lv-accent);
+  border-color: var(--lv-accent);
+  color: #fff;
+  font-weight: 700;
+}
+
+.lv-page-ellipsis {
+  padding: 0 .25rem;
+  color: var(--lv-text-muted);
+}
+
+.lv-page-info {
+  margin-left: auto;
+  font-size: .8rem;
+  color: var(--lv-text-muted);
+}
+
+/* ----- Responsive ----- */
+@media (max-width: 768px) {
+  .lv-body {
+    flex-direction: column;
+  }
+
+  .lv-sidebar {
+    width: 100%;
+    height: auto;
+    position: static;
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
+    border-right: none;
+    border-bottom: 1px solid var(--lv-border-dark);
+  }
+
+  .lv-file-list {
+    display: flex;
+    flex-direction: row;
+    padding: .5rem;
+    gap: .35rem;
+  }
+
+  .lv-file-item {
+    flex-shrink: 0;
+    margin-bottom: 0;
+  }
+
+  .lv-file-link {
+    flex-direction: row;
+    gap: .4em;
+    white-space: nowrap;
+  }
+
+  .lv-col-logger, .lv-col-tenant { display: none; }
+}

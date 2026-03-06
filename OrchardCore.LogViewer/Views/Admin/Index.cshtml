@@ -1,0 +1,110 @@
+@model OrchardCore.LogViewer.ViewModels.LogViewerViewModel
+@using OrchardCore.LogViewer.Models
+@{
+    ViewData["Title"] = "Log Viewer";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<link rel="stylesheet" href="~/OrchardCore.LogViewer/css/log-viewer.css" asp-append-version="true" />
+<script src="https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js"
+        integrity="sha384-OLBgp1GsljhM2TJ+sbHjaiH9txEUvgdDTAzHv2P24donTt6/529l+9Ua0vFImLlb"
+        crossorigin="anonymous" defer></script>
+<script src="~/OrchardCore.LogViewer/js/log-viewer.js" asp-append-version="true" defer></script>
+
+<div class="lv-wrapper" id="lv-app">
+    <!-- Header -->
+    <header class="lv-header">
+        <div class="lv-header-left">
+            <h1 class="lv-title">
+                <svg class="lv-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14,2 14,8 20,8"/>
+                    <line x1="16" y1="13" x2="8" y2="13"/>
+                    <line x1="16" y1="17" x2="8" y2="17"/>
+                    <polyline points="10,9 9,9 8,9"/>
+                </svg>
+                Log Viewer
+            </h1>
+        </div>
+        <div class="lv-header-right">
+            <button id="lv-dark-toggle" class="lv-btn lv-btn-icon" title="Toggle dark mode" aria-label="Toggle dark mode">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <div class="lv-body">
+        <!-- Sidebar -->
+        <aside class="lv-sidebar">
+            <div class="lv-sidebar-header">Log Files</div>
+            <ul class="lv-file-list">
+                @foreach (var file in Model.LogFiles)
+                {
+                    var isActive = file.Name == Model.Query.FileName ||
+                                   (Model.Query.FileName == null && file == Model.LogFiles.FirstOrDefault());
+                    <li class="lv-file-item @(isActive ? "lv-file-item--active" : "")">
+                        <a href="#"
+                           class="lv-file-link"
+                           hx-get="@Url.Action("Entries", "Admin", new { area = "OrchardCore.LogViewer", fileName = file.Name, page = 1, perPage = Model.Query.PerPage, newestFirst = Model.Query.NewestFirst })"
+                           hx-target="#log-entries-container"
+                           hx-swap="innerHTML"
+                           hx-push-url="@Url.Action("Index", "Admin", new { area = "OrchardCore.LogViewer", fileName = file.Name, page = 1, perPage = Model.Query.PerPage, newestFirst = Model.Query.NewestFirst })"
+                           data-file="@file.Name">
+                            <span class="lv-file-name">@file.Name</span>
+                            <span class="lv-file-size">@file.FormattedSize</span>
+                        </a>
+                    </li>
+                }
+                @if (!Model.LogFiles.Any())
+                {
+                    <li class="lv-file-empty">No log files found</li>
+                }
+            </ul>
+        </aside>
+
+        <!-- Main content -->
+        <main class="lv-main">
+            <!-- Toolbar -->
+            <div class="lv-toolbar">
+                <div class="lv-level-filters">
+                    @foreach (var level in Enum.GetValues<LogLevel>())
+                    {
+                        var count = Model.Result.LevelCounts.TryGetValue(level, out var c) ? c : 0;
+                        var isActive = Model.Query.Level == level;
+                        var levelLower = level.ToString().ToLowerInvariant();
+                        <button class="lv-level-badge lv-level-badge--@levelLower @(isActive ? "lv-level-badge--active" : "")"
+                                hx-get="@Url.Action("Entries", "Admin", new { area = "OrchardCore.LogViewer", fileName = Model.Query.FileName, level = isActive ? null : level, searchTerm = Model.Query.SearchTerm, page = 1, perPage = Model.Query.PerPage, newestFirst = Model.Query.NewestFirst })"
+                                hx-target="#log-entries-container"
+                                hx-swap="innerHTML"
+                                hx-push-url="@Url.Action("Index", "Admin", new { area = "OrchardCore.LogViewer", fileName = Model.Query.FileName, level = isActive ? null : level, searchTerm = Model.Query.SearchTerm, page = 1, perPage = Model.Query.PerPage, newestFirst = Model.Query.NewestFirst })"
+                                title="Filter by @level">
+                            @level <span class="lv-badge-count">@count</span>
+                        </button>
+                    }
+                </div>
+
+                <div class="lv-search-wrapper">
+                    <input type="search"
+                           id="lv-search"
+                           class="lv-search"
+                           placeholder="Search... RegEx welcome! (/pattern/)"
+                           value="@Model.Query.SearchTerm"
+                           hx-get="@Url.Action("Entries", "Admin", new { area = "OrchardCore.LogViewer", fileName = Model.Query.FileName, level = Model.Query.Level, perPage = Model.Query.PerPage, newestFirst = Model.Query.NewestFirst, page = 1 })"
+                           hx-target="#log-entries-container"
+                           hx-swap="innerHTML"
+                           hx-trigger="keyup changed delay:300ms"
+                           hx-include="this"
+                           name="searchTerm"
+                           hx-push-url="true" />
+                </div>
+            </div>
+
+            <!-- Log entries container (HTMX target) -->
+            <div id="log-entries-container">
+                @await Html.PartialAsync("_LogEntries", Model)
+            </div>
+        </main>
+    </div>
+</div>
