@@ -13,3 +13,7 @@ testbench.yaml
 /vendor
 /node_modules
 /tests/Feature/performance_test.log
+
+# .NET build artifacts
+OrchardCore.LogViewer/obj/
+OrchardCore.LogViewer/bin/
