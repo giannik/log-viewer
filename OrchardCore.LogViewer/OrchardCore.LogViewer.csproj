@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
+    <GenerateEmbeddedFilesManifest>true</GenerateEmbeddedFilesManifest>
+    <EnableDefaultRazorGenerateItems>false</EnableDefaultRazorGenerateItems>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Reference OrchardCore.Module.Targets to enable module conventions -->
+    <!-- <PackageReference Include="OrchardCore.Module.Targets" Version="2.*" /> -->
+    <!-- Uncomment the line above when integrating into an Orchard Core solution -->
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Views\**" />
+  </ItemGroup>
+
+</Project>
