@@ -21,8 +21,28 @@ A fast, beautiful web-based log viewer for [Orchard Core](https://orchardcore.ne
    ```xml
    <ProjectReference Include="../OrchardCore.LogViewer/OrchardCore.LogViewer.csproj" />
    ```
-2. Enable the module in the Orchard Core admin under **Configuration → Features**.
-3. Grant the `ViewLogViewer` permission to the appropriate roles.
+2. Enable the module in the Orchard Core admin under **Configuration → Features → Log Viewer → Enable**.
+3. Grant the `ViewLogViewer` permission to the appropriate roles under **Security → Roles**.
+
+## Accessing the Log Viewer
+
+Once the module is enabled, open your browser and navigate to:
+
+```
+https://<your-site>/Admin/LogViewer
+```
+
+> **Example:** `https://localhost:5001/Admin/LogViewer`
+
+You can also reach it from the Orchard Core admin sidebar via **Configuration → Log Viewer**.
+
+### Available endpoints
+
+| URL | Description |
+|-----|-------------|
+| `/Admin/LogViewer` | Main log viewer page |
+| `/Admin/LogViewer/Entries?fileName=<name>` | HTMX partial — entries for a specific file |
+| `/Admin/LogViewer/Download/<fileName>` | Download a raw log file |
 
 ## Log Format
 
@@ -42,7 +62,7 @@ Multi-line entries (stack traces) are supported and displayed in collapsible row
 
 ## Usage
 
-Navigate to **Admin → Configuration → Log Viewer** in the Orchard Core admin panel.
+Navigate directly to **`/Admin/LogViewer`** in your browser, or use the admin sidebar: **Configuration → Log Viewer**.
 
 ### Search
 
