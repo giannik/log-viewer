@@ -105,6 +105,54 @@ The following features are **not yet implemented** but are planned for future ve
 - **Configurable log path** via Orchard Core admin settings panel
 - **Caching / indexing** for large files to speed up repeated searches (inspired by the original project's `LogIndex` approach)
 
+### Real-time email alerts on log criteria
+
+Sending email notifications when log entries match given criteria (e.g. ERROR or FATAL level) can be achieved through several complementary approaches:
+
+#### Option 1 — NLog `MailTarget` (built-in, zero extra dependencies)
+
+NLog ships a [`MailTarget`](https://nlog-project.org/config/?tab=targets&search=mailtarget) that can be configured entirely in `NLog.config`. Example rule that e-mails on ERROR and above:
+
+```xml
+<targets>
+  <target xsi:type="Mail"
+          name="mail"
+          smtpServer="smtp.example.com"
+          smtpPort="587"
+          enableSsl="true"
+          smtpAuthentication="Basic"
+          smtpUserName="${env:SMTP_USER}"
+          smtpPassword="${env:SMTP_PASS}"
+          from="noreply@example.com"
+          to="ops@example.com"
+          subject="[${machinename}] ${level:uppercase=true}: ${logger}"
+          body="${longdate}|${level}|${logger}|${message}${newline}${exception:format=tostring}" />
+</targets>
+<rules>
+  <logger name="*" minlevel="Error" writeTo="mail" />
+</rules>
+```
+
+> **Tip:** Wrap with a `<target xsi:type="BufferingWrapper">` to batch multiple entries into one email and avoid alert storms.
+
+This is the lowest-friction option — no code changes to the module are required.
+
+#### Option 2 — NLog `WebServiceTarget` / custom `Target` in Orchard Core
+
+Implement a custom `NLog.Targets.Target` subclass that enqueues matched entries into an `IBackgroundTask`, then uses Orchard Core's `ISmtpService` (from `OrchardCore.Email`) to send templated emails. This approach lets you control templates, rate-limiting, and per-tenant routing entirely in C#.
+
+Reference: [`NLog.Targets.Target` base class](https://github.com/NLog/NLog/blob/master/src/NLog/Targets/Target.cs)
+
+#### Option 3 — Seq + alerting rules (external, SaaS or self-hosted)
+
+[Seq](https://datalust.co/seq) is a structured log server with a first-class NLog sink ([`NLog.Targets.Seq`](https://github.com/datalust/nlog-targets-seq)). It provides a web UI for alert rules, email/Slack/Teams notifications, and dashboards — without any custom code.
+
+#### Option 4 — Serilog `Email` sink (alternative logging pipeline)
+
+If the project were to switch to Serilog, [`Serilog.Sinks.Email`](https://github.com/serilog/serilog-sinks-email) provides a similar capability with `minimumLevel` filtering and SMTP configuration.
+
+> **Recommendation for a future module version:** expose a lightweight settings page (using Orchard Core's `ISiteService`) where administrators can configure SMTP credentials, a minimum log level threshold, and a list of recipient addresses. Under the hood this would register a custom `NLog.Targets.Target` that delegates to Orchard Core's `ISmtpService`, keeping everything inside the Orchard Core ecosystem.
+
 ## License
 
 MIT
